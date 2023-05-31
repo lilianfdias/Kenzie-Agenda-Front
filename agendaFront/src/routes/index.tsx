@@ -3,6 +3,7 @@ import { LandingPage } from "../pages/landingPage/landingPage";
 import { Login } from "../pages/login/login";
 import { Register } from "../pages/register/register";
 import { Home } from "../pages/home/home";
+import { ProtectedRoutes } from "./protectedRoutes";
 
 export const RoutesMain = () => {
   return (
@@ -10,7 +11,9 @@ export const RoutesMain = () => {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/home" element={<Home />} />
+      <Route element={<ProtectedRoutes />}>
+        <Route path="/home" element={<Home />} />
+      </Route>
     </Routes>
   );
 };
