@@ -4,7 +4,10 @@ import { api } from "../services/api";
 import { useNavigate } from "react-router-dom";
 import { CreateUserData } from "../pages/register/validator";
 import jwt_decode from "jwt-decode";
-import { CreateContactData } from "../components/modals/addContact/validator";
+import {
+  CreateContactData,
+  UpdateContactData,
+} from "../components/modals/addContact/validator";
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -27,6 +30,12 @@ interface AuthContextValues {
   contacts: Contact[];
   setContacts: React.Dispatch<React.SetStateAction<Contact[]>>;
   deleteContact: (id: string) => void;
+  renderUser: () => void;
+  updateContact: (
+    data: UpdateContactData,
+    contactId: string,
+    onClose: () => void
+  ) => void;
 }
 
 interface TokenContract {
@@ -68,8 +77,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       navigate("/login");
       return;
     }
-    const id = jwt_decode<TokenContract>(token!).id;
-
+    // const id = jwt_decode<TokenContract>(token!).id;
+    const decodedToken = jwt_decode<TokenContract>(token);
+    const id = decodedToken?.id;
     try {
       api.defaults.headers.common.authorization = `Bearer ${token}`;
       const { data } = await api.get(`/users/${id}`);
@@ -80,13 +90,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   const renderContacts = async () => {
-    const token: string | null = localStorage.getItem("userToken:token");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
+    // const token: string | null = localStorage.getItem("userToken:token");
+    // if (!token) {
+    //   navigate("/login");
+    //   return;
+    // }
 
-    const { data } = await api.get("/contacs");
+    const { data } = await api.get("/contacts");
     setContacts(data);
   };
 
@@ -130,6 +140,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  const updateContact = async (
+    data: UpdateContactData,
+    contactId: string,
+    onClose: () => void
+  ) => {
+    try {
+      await api.patch("/contacts/" + contactId, data);
+      renderContacts();
+      onClose();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -141,6 +165,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         contacts,
         setContacts,
         deleteContact,
+        renderUser,
+        updateContact,
       }}
     >
       {children}

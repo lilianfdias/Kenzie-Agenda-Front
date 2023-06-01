@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { api } from "../../services/api";
 import { useAuth } from "../../hooks/useAuth";
 import {
@@ -27,24 +27,42 @@ import { GiHamburgerMenu } from "react-icons/gi";
 import { MdLogout } from "react-icons/md";
 import { ModalAddMusic } from "../../components/modals/addContact/addContactModal";
 import { Contact } from "../../providers/authProvider";
-
-// interface Contact {
-//   id: string;
-//   contact_name: string;
-//   email: string;
-//   phones_number: string;
-//   contact_image?: string;
-// }
+import { UpdateContactModal } from "../../components/modals/updateContact/updateContactModal";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 export const Home = () => {
-  const { user, contacts, setContacts, deleteContact } = useAuth();
-  // const [contacts, setContacts] = useState<Contact[]>([]);
+  const { user, contacts, setContacts, deleteContact, renderUser } = useAuth();
+  const navigate = useNavigate();
+  const [filter, setFilter] = useState("");
+
+  const logout = () => {
+    window.localStorage.clear();
+    navigate("/login");
+  };
+
+  const search = async (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    const token: string | null = localStorage.getItem("userToken:token");
+    api.defaults.headers.common.authorization = `Bearer ${token}`;
+
+    const response = await api.get<Contact[]>("/contacts");
+    let data = response.data;
+
+    if (filter.length !== 0) {
+      data = data.filter(
+        (d) => d.contact_name.toLocaleLowerCase().search(filter) !== -1
+      );
+    }
+    setContacts(data);
+  };
 
   useEffect(() => {
-    (async () => {
-      const response = await api.get<Contact[]>("contacts");
-      setContacts(response.data);
-    })();
+    renderUser(),
+      (async () => {
+        const response = await api.get<Contact[]>("contacts");
+        setContacts(response.data);
+      })();
   }, []);
   return (
     <>
@@ -72,7 +90,9 @@ export const Home = () => {
             />
             <MenuList>
               <MenuItem icon={<FaUserEdit />}>Editar perfil</MenuItem>
-              <MenuItem icon={<MdLogout />}>Sair</MenuItem>
+              <MenuItem onClick={logout} icon={<MdLogout />}>
+                Sair
+              </MenuItem>
             </MenuList>
           </Menu>
         </Box>
@@ -99,19 +119,27 @@ export const Home = () => {
             <Text fontSize="lg">Bem vindo, {user.name} !</Text>
           </Box>
           <Box display={"flex"} gap={"3"}>
-            <InputGroup size={"md"}>
-              <Input placeholder="Pesquise seu contato" />
-              <InputRightElement width={"4rem"}>
-                <Button
-                  as={IconButton}
-                  icon={<FaSearch />}
-                  variant={"ghost"}
-                  bg={"transparent"}
-                  color={"brand"}
-                  _hover={{ bg: "transparent", color: "green" }}
-                ></Button>
-              </InputRightElement>
-            </InputGroup>
+            <form onSubmit={search}>
+              <InputGroup size={"md"}>
+                <Input
+                  onChange={(e) =>
+                    setFilter(e.target.value.toLocaleLowerCase())
+                  }
+                  placeholder="Pesquise seu contato"
+                />
+                <InputRightElement width={"4rem"}>
+                  <Button
+                    type="submit"
+                    as={IconButton}
+                    icon={<FaSearch />}
+                    variant={"ghost"}
+                    bg={"transparent"}
+                    color={"brand"}
+                    _hover={{ bg: "transparent", color: "green" }}
+                  />
+                </InputRightElement>
+              </InputGroup>
+            </form>
             <ModalAddMusic />
           </Box>
         </Box>
@@ -147,13 +175,7 @@ export const Home = () => {
                     </Box>
                   </CardBody>
                   <CardFooter>
-                    <Button
-                      variant={"outline"}
-                      color={"brand"}
-                      outline={"brand"}
-                    >
-                      Editar
-                    </Button>
+                    <UpdateContactModal contact={contact} />
                     <Button
                       variant={"ghost"}
                       fontWeight={"light"}
